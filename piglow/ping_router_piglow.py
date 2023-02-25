@@ -122,7 +122,6 @@ def animate_cron(responses: List[str], trial: int, leg: IntEnum = Cron):
 
     # turn off two-past led on Cron leg
     # trial-2 will be in: [12,17]
-    #back_two = [16, 17, 12, 13, 14, 15]
     back_two = {12:16, 13:17, 14:12, 15:13, 16:14, 17:15}
     piglow.set(leg(back_two[trial]), 0)
 
