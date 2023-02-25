@@ -11,8 +11,6 @@ on a leg imply 10 minute checks can cover each hour.
 
 Intended to be called via cron
 
-note: must call pyenv python.
-TODO: figure out how to call pyenv python from cron
 TODO: while ping can accept -c, and it would be nice to light at each
     call, I can't think of any way to interupt/catch each response... 
 TODO: swap animate_ping to threaded - blinking and turning off independently
@@ -45,7 +43,7 @@ logging.basicConfig(
         encoding='utf-8', 
         level=LEVEL)
 
-# LEGS (make ENUMS?!)
+# LEGS
 # from outside to inside 
 Ping = IntEnum("Ping", ["ZERO", "ONE", "TWO", "THREE", "FOUR", "FIVE"], start=0)
 Resp = IntEnum("Resp", ["SIX", "SEVEN", "EIGHT", "NINE", "TEN", "ELEVEN"], start=6)
@@ -88,7 +86,6 @@ def animate_responses(responses: str, leg = Resp):
     For now, assume 6 pings. later can modulo maybe"""
 
     for led, response in zip(reversed(leg), responses):
-        #print(f"{response= }")
         if "0% packet loss".lower() in response:
             piglow.set(led, 32)
         else:
@@ -114,14 +111,11 @@ def animate_cron(responses: List[str], trial: int, leg: IntEnum = Cron):
 
     hit_rate = sum(["0% packet loss" in c for c in responses]) \
                      / len(responses)
-    #print(f"reached {hit_rate = }")
     trial_success = hit_rate >= threshold 
-    #print(f"lighting led: {leg(trial) = }")
     blink(leg(trial))
     piglow.set(leg(trial), 64)
 
     # turn off two-past led on Cron leg
-    # trial-2 will be in: [12,17]
     back_two = {12:16, 13:17, 14:12, 15:13, 16:14, 17:15}
     piglow.set(leg(back_two[trial]), 0)
 
