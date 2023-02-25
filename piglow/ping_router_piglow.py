@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/root/.pyenv/shims/python
 
 """
 Piglow vanity job that pings home router, if success, iterate
@@ -8,6 +8,8 @@ animation for response (2).
 To start, run as a python script only. Later, call in cron,
 and don't clear iteration leg(0) for long term viz. 6 LEDs
 on a leg imply 10 minute checks can cover each hour. 
+
+Intended to be called via cron
 
 note: must call pyenv python.
 TODO: figure out how to call pyenv python from cron
@@ -28,7 +30,7 @@ import time
 
 import piglow
 
-#piglow.clear_on_exit = True
+piglow.clear_on_exit = False
 piglow.auto_update = True
 
 # ROUTER AND LOG VARS
@@ -118,8 +120,11 @@ def animate_cron(responses: List[str], trial: int, leg: IntEnum = Cron):
     blink(leg(trial))
     piglow.set(leg(trial), 64)
 
-    # turn off two-past led
-    piglow.set(leg(trial-2), 0)
+    # turn off two-past led on Cron leg
+    # trial-2 will be in: [12,17]
+    #back_two = [16, 17, 12, 13, 14, 15]
+    back_two = {12:16, 13:17, 14:12, 15:13, 16:14, 17:15}
+    piglow.set(leg(back_two[trial]), 0)
 
 
 def blink(led: IntEnum, blinks=6):
@@ -141,13 +146,8 @@ def leg_off(leg: IntEnum):
     piglow.arm(leg, 0)
 
 if __name__ == "__main__":
-    #piglow.set(Ping.ONE.value, 64)j
-    # TODO load state inbetween runs
     # add 12 to reach Cron value
-    while True:
-        trial = datetime.now().minute % 6 + 12
-
-        res = ping_router(ip=IP)
-        animate_responses(res)
-        animate_cron(res, trial)
-        time.sleep(10*60)
+    trial = (datetime.now().minute % 6) + 12
+    res = ping_router(ip=IP)
+    animate_responses(res)
+    animate_cron(res, trial)
