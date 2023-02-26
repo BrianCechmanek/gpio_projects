@@ -24,6 +24,7 @@ import logging
 from pathlib import Path
 import platform
 import subprocess
+import sys
 import time
 
 import piglow
@@ -76,6 +77,7 @@ def ping_router(ip="192.168.1.1", c: int = 1) -> Any:
         except Exception as e:
             logging.error(f"Ping failed: {e = }")
             responses.append(e)
+            sys.exit(1)
         time.sleep(1)
     return responses
 
