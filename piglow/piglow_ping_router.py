@@ -1,4 +1,4 @@
-#!/root/.pyenv/shims/python
+#!/root/.pyenv/versions/3.11.2/envs/gpio-3.11/bin/python3.11
 
 """
 Piglow vanity job that pings home router, if success, iterate
@@ -34,7 +34,7 @@ piglow.auto_update = True
 # ROUTER AND LOG VARS
 IP = "192.168.1.1"
 LOG = Path("/root/wifi_debug/ping_router_piglow.log")
-TEST_LOG = Path("/root/wifi_debug/ping_router_dev.log")
+TEST_LOG = Path("/root/wifi_debug/ping_router_cron.log")
 LEVEL = logging.DEBUG
 
 logging.basicConfig(
@@ -62,7 +62,7 @@ def ping_router(ip="192.168.1.1", c: int = 1) -> Any:
         response from system ping, string
     """ 
     command = ["ping", "-c", str(c), ip] 
-    logging.debug(f"Pinging home router {ip = }, {c} times") 
+    logging.debug(f"Pinging home router {ip = }, {c*len(Ping)} times") 
     responses = []
     for led in reversed(Ping):
         try:
