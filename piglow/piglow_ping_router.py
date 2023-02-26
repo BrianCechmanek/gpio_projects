@@ -77,6 +77,7 @@ def ping_router(ip="192.168.1.1", c: int = 1) -> Any:
         except Exception as e:
             logging.error(f"Ping failed: {e = }")
             responses.append(e)
+            piglow.off()
             sys.exit(1)
         time.sleep(1)
     return responses
