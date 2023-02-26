@@ -50,6 +50,8 @@ Resp = IntEnum("Resp", ["SIX", "SEVEN", "EIGHT", "NINE", "TEN", "ELEVEN"], start
 Cron = IntEnum("Cron", ["TWELVE","THIRTEEN", "FOURTEEN", "FIFTEEN",
                         "SIXTEEN", "SEVENTEEN"], start=12)
 Legs = IntEnum("Legs", ["ZERO", "ONE", "TWO", ], start=0)
+# OTHER CONSTANTS
+POWER = 32    # led brightness - won't be same lumin for all colours. meh
 
 def ping_router(ip="192.168.1.1", c: int = 1) -> Any:
     """ Subprocess call to router via ping. 
@@ -78,7 +80,7 @@ def ping_router(ip="192.168.1.1", c: int = 1) -> Any:
     return responses
 
 def animate_ping(led: Ping, err_blink=False):
-    piglow.set(led, 64)
+    piglow.set(led, POWER)
 
 def animate_responses(responses: str, leg = Resp):
     """Animate leg=1 for ping responses. blink if errored, solid of success
@@ -87,13 +89,13 @@ def animate_responses(responses: str, leg = Resp):
 
     for led, response in zip(reversed(leg), responses):
         if "0% packet loss".lower() in response:
-            piglow.set(led, 32)
+            piglow.set(led, POWER)
         else:
-            blink(led, 64)
+            blink(led, POWER)
 
     if all(["0% packet loss" in c for c in responses]):
         blink_leg(Legs.ONE)
-        piglow.arm(Legs.ONE, 32) 
+        piglow.arm(Legs.ONE, POWER) 
 
     time.sleep(2.5)
     leg_off(Legs.ONE)
@@ -111,9 +113,14 @@ def animate_cron(responses: List[str], trial: int, leg: IntEnum = Cron):
 
     hit_rate = sum(["0% packet loss" in c for c in responses]) \
                      / len(responses)
+    # blink and hold on success
     trial_success = hit_rate >= threshold 
-    blink(leg(trial))
-    piglow.set(leg(trial), 64)
+    if trial_success: 
+        blink(leg(trial), blinks=2)
+        piglow.set(leg(trial), POWER)
+    # keep blinking on failure
+    else:
+        blink(leg(trial), blinks=15) 
 
     # turn off two-past led on Cron leg
     back_two = {12:16, 13:17, 14:12, 15:13, 16:14, 17:15}
@@ -122,14 +129,14 @@ def animate_cron(responses: List[str], trial: int, leg: IntEnum = Cron):
 
 def blink(led: IntEnum, blinks=6):
     for i in range(blinks):
-        piglow.set(led, 64)
+        piglow.set(led, POWER)
         time.sleep(0.25)
         piglow.set(led, 0)
         time.sleep(0.25)
 
 def blink_leg(leg: IntEnum, blinks= 6):
     for i in range(blinks):
-        piglow.leg(leg, 64)
+        piglow.leg(leg, POWER)
         time.sleep(0.25)
         piglow.leg(leg, 0)
         time.sleep(0.25)
@@ -139,8 +146,7 @@ def leg_off(leg: IntEnum):
     piglow.arm(leg, 0)
 
 if __name__ == "__main__":
-    # add 12 to reach Cron value
-    trial = (datetime.now().minute % 6) + 12
+    trial = (datetime.now().minute % 6) + 12  # add 12 to reach Cron value
     res = ping_router(ip=IP)
     animate_responses(res)
     animate_cron(res, trial)
