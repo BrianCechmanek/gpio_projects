@@ -16,11 +16,12 @@ TODO: while ping can accept -c, and it would be nice to light at each
 TODO: swap animate_ping to threaded - blinking and turning off independently
 """
 
-from typing import Any, List
+from typing import Any, Dict, List, Set, Tuple
 
 from datetime import datetime
 from enum import IntEnum
 import logging
+import os
 from pathlib import Path
 import platform
 import subprocess
@@ -34,8 +35,8 @@ piglow.auto_update = True
 
 # ROUTER AND LOG VARS
 IP = "192.168.1.1"
-LOG = Path("/root/wifi_debug/ping_router_piglow.log")
-TEST_LOG = Path("/root/wifi_debug/ping_router_cron.log")
+LOG = Path("/root/wifi_debug/ping_router_cron.log")
+TEST_LOG = Path("/root/wifi_debug/ping_router_dev.log")
 LEVEL = logging.DEBUG
 
 logging.basicConfig(
@@ -103,7 +104,7 @@ def animate_responses(responses: str, leg = Resp):
     time.sleep(2.5)
     leg_off(Legs.ONE)
 
-def animate_cron(responses: List[str], trial: int, leg: IntEnum = Cron):
+def animate_cron(responses: List[str], trial: int, leg: IntEnum = Cron) -> Tuple[Set, Set]:
     """Animate leg 2, showing successful full ping checks. 
 
     When a check as >80% packet transmission, consider it a successful
@@ -128,7 +129,13 @@ def animate_cron(responses: List[str], trial: int, leg: IntEnum = Cron):
     # turn off two-past led on Cron leg
     back_two = {12:16, 13:17, 14:12, 15:13, 16:14, 17:15}
     piglow.set(leg(back_two[trial]), 0)
-
+    
+    # track state
+    on = {leg(trial).value} if trial_success else set()
+    off = {back_two[trial]}
+    state = {"on": on, "off": off}
+    print(f"on/off state after cron: {state}")
+    return on, off
 
 def blink(led: IntEnum, blinks=6):
     for i in range(blinks):
@@ -148,8 +155,49 @@ def blink_leg(leg: IntEnum, blinks= 6):
 def leg_off(leg: IntEnum):
     piglow.arm(leg, 0)
 
+def read_prev_state(fp: Path) -> Dict:
+    """Return a dict holding each piglow arm's state on last run.
+
+    Reads the given logfile for it's last line, only. At the moment,
+    this state is just for LEG2- the 10-minutely result."""
+    with open(str(fp), 'r') as f:
+        try:  # catch OSError in case of a one line file 
+            f.seek(-2, os.SEEK_END)
+            while f.read(1) != b'\n':
+                f.seek(-2, os.SEEK_CUR)
+        except OSError:
+            f.seek(0)
+        last_line = f.readline()
+   
+    print(f"prev_state: {last_line}")
+
+    try:
+        prev_state = last_line.split("exit state:")[-1] 
+        print(f"prev_state: {prev_state = }")
+        prev_state = eval(last_line.split("exit state:")[-1])
+        print(f"evaled state: {prev_state = }")
+    except:
+        prev_state = {"on": set(), "off": set()}
+        print("no prev state found")
+    return prev_state
+
+# def get_gpio_state(res, trial) -> Dict:
+#    """Return Cron (leg) state """
+#
+    return state
+
 if __name__ == "__main__":
+    # read prior gpio state. there appears no direct hardware method
+    # so storing in logfile on close is fastest to implement
+    prev_state = read_prev_state(TEST_LOG)
+    prev_on, prev_off = prev_state["on"], prev_state["off"]
+
     trial = (datetime.now().minute % 6) + 12  # add 12 to reach Cron value
     res = ping_router(ip=IP)
     animate_responses(res)
-    animate_cron(res, trial)
+    on, off = animate_cron(res, trial)
+
+    # log gpio state for later reload
+    on = (prev_on | on ) - off
+    print(f"exit state: {on = }, {off = }")
+    logging.info(f"exit state: {on = }, {off = }")
