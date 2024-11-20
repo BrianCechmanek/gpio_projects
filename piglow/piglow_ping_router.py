@@ -184,7 +184,7 @@ def read_prev_state(fp: Path) -> Dict:
 # def get_gpio_state(res, trial) -> Dict:
 #    """Return Cron (leg) state """
 #
-    return state
+#    return state
 
 if __name__ == "__main__":
     # read prior gpio state. there appears no direct hardware method
